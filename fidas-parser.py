@@ -7,13 +7,15 @@ Code for cleaning up fidas frog files of medatata and converting them to plain c
 and merging with GPS files
 
 Example:
-        $ python fidas-parser.py -i <inputfile> -o <outputfile>
+        $ python fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] -o <outputfile>'
 
 
 Todo:
-    * Implement GPS merging properly 
+    * Test GPS merging properly 
     * Add more input arguments: human readable switch for outputfile
     * Add comment extraction function
+    * Add formating arguments
+    * Add custom headers
 
 
   Copyright (c) 2017, Newcastle University, UK. 
@@ -48,16 +50,16 @@ __copyright__ = "Copyright (c) 2017, Newcastle University, UK."
 __license__ = "MIT"
 __maintainer__ = "Aare Puussaar"
 __email__ = "a.puussaar2@ncl.ac.uk"
-__version__ = "0.3"
+__version__ = "0.4"
 __status__ = "Development"
+
 
 import sys, getopt, datetime
 import pandas as pd
+from datetime import datetime, timedelta
 
 
-
-
-def addGPS(readings,gps,rheader,gheader):
+def addGPS(readings,gps,gheader):
     """Function for getting nearest timestamp gps location
 
         TODO - needs testing
@@ -73,13 +75,16 @@ def addGPS(readings,gps,rheader,gheader):
         loc: data start location in the file
 
     """
-    #readings = readings.set_index(rheader)
-    #gps = gps.set_index(gheader, drop=False)
-    #gps.reindex(reading.index, method='nearest')
+    
+    #if readings are in epoch
+    #Timezone issues with the parser
+    readings.timestamp = readings.timestamp.astype("datetime64[s]") - timedelta(hours=1)
+    #TODO - add format as argument
+    gps[gheader] = pd.to_datetime(gps[gheader],format="%Y/%m/%d %H:%M:%S")
     
     gps_dt = pd.Series(gps[gheader].values, gps[gheader])
-    #gps_dt.reindex(readings[rheader], method="nearest")
-    readings["nearest"] = gps_dt.reindex(readings[rheader], method="nearest").values
+    #gps_dt.reindex(readings["timestamp"], method="nearest")
+    readings["nearest"] = gps_dt.reindex(readings["timestamp"], method="nearest").values
     merged_df = pd.merge(readings, gps,  how='left', left_on=['nearest'], right_on = [gheader])
     return merged_df
 
@@ -103,6 +108,7 @@ def getStarts(source):
                 break
             loc+=1
     #extract datetime from string
+    #TODO - check for format conversion
     starttime = pd.to_datetime(str(s.split(":", 1)[1].strip()).replace("-", "").replace("/", "-"))
     #convert from nanoseconds
     starttime = starttime.value/10**9 
@@ -127,13 +133,15 @@ def convertTime(data,starttime,human=False):
 def main(argv):
     inputfile = ''
     outputfile = ''
+    gpsheader = ''
+    gpsfile = ''
     if(len(argv)<1):
-        print 'usage: fidas-parser.py -i <inputfile> -o <outputfile>'
+        print 'usage: fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] -o <outputfile>'
         sys.exit(2);
     try:
-        opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
+        opts, args = getopt.getopt(argv,"hi:m:g:o:",["ifile=","mhead=","gfile=","ofile="])
     except getopt.GetoptError:
-        print 'usage: fidas-parser.py -i <inputfile> -o <outputfile>'
+        print 'usage: fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] -o <outputfile>'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -143,12 +151,22 @@ def main(argv):
             inputfile = arg
         elif opt in ("-o", "--ofile"):
             outputfile = arg
+        elif opt in ("-m","mhead="):
+            gpsheader= arg
+        elif opt in ("-gps","gpsfile="):
+            gpsfile = arg
     start,loc = getStarts(inputfile)
     data = pd.read_csv(inputfile, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0)
-    data = convertTime(data,start,True)
+    data = convertTime(data,start)
+    if gpsheader:
+        gps=pd.read_csv(gpsfile,sep=',',header=0)
+        data = addGPS(data,gps,gpsheader)
+        #data = addGPS(data,gps,"YYYY-MO-DD HH-MI-SS_SSS")         
+    #add custom header
+    #header = ["timestamp","PM 1","PM 2.5","PM 4","PM 10","PM tot.","dCn","X","Y","time"]
+    #data.to_csv(outputfile,columns = header, index=False)
     data.to_csv(outputfile,index=False)
     print "Successfully written",outputfile
-    
 
 if __name__ == "__main__":
    main(sys.argv[1:])
