@@ -27,6 +27,6 @@ Feel free to fork, download, modify and reuse this parser.
 
 ## License
 
-FidasParser is provided under the [MIT](https://github.com/aarepuu/fidasparser/master/LICENSE):
+FidasParser is provided under the [MIT](https://github.com/aarepuu/fidasparser/blob/master/LICENSE):
 
 	Copyright (c), 2017 Open Lab Newcastle University, UK. Aare Puussaar
