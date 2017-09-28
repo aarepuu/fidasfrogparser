@@ -27,6 +27,6 @@ Feel free to fork, download, modify and reuse this parser.
 
 ## License
 
-RAW is provided under the [Apache License 2.0](https://github.com/densitydesign/raw/blob/master/LICENSE):
+FidasParser is provided under the [MIT](https://github.com/aarepuu/fidasparser/master/LICENSE):
 
 	Copyright (c), 2017 Open Lab Newcastle University, UK. Aare Puussaar
