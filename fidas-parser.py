@@ -18,7 +18,7 @@ Todo:
     * Add custom headers
 
 
-  Copyright (c) 2017, Newcastle University, UK. 
+  Copyright (c) 2017, Open Lab Newcastle University, UK. 
   All rights reserved.
   
   Redistribution and use in source and binary forms, with or without 
