@@ -14,7 +14,7 @@ File parser for Fidas® Frog dust monitor
 Use FidasFrogParser from the command line:
 
 ``` sh
-$ python fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] [-o <outputfile>]'
+$ python fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] [-o <outputfile>]
 ```
 ## Authors
 **FidasFrogParser** has been originally developed by:
