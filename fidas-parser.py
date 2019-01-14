@@ -1,7 +1,4 @@
-#remove millis
-    gps[gheader] = gps[gheader].values.astype('datetime64[s]')
-    #remove dublicates
-    gps = gps.drop_duplicates(gheader,keep='last')#!/usr/bin/env python
+#!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
 """Fidas Frog dataparser.
@@ -54,7 +51,7 @@ __copyright__ = "Copyright (c) 2017, Newcastle University, UK."
 __license__ = "MIT"
 __maintainer__ = "Aare Puussaar"
 __email__ = "a.puussaar2@ncl.ac.uk"
-__version__ = "0.51"
+__version__ = "0.52"
 __status__ = "Development"
 
 
@@ -107,15 +104,15 @@ def getStarts(source):
         deviceid: device id of the sensor
     """
     loc = 0
-    with open(source) as f:
-        for line in f:            
+    with open(source, encoding='ISO-8859-1') as f:
+        for line in f:          
             if line.startswith('Start at:'):
                 s=line
             if line.startswith('Operator:'):
                 deviceid = line
             if line.startswith('timestamp'):
                 break
-            loc+=1    
+            loc+=1     
     #extract datetime from string
     #starttime = pd.to_datetime(str(s.split(":", 1)[1].strip()).replace("-", "").replace("/", "-"))
     starttime = pd.to_datetime(str(s.split(":", 1)[1].strip()),format="%d/%m/%Y - %H:%M:%S")
@@ -124,7 +121,7 @@ def getStarts(source):
     starttime = starttime.value/10**9 
     return starttime, loc, deviceid
 
-def convertTime(data,starttime,human=False):
+def convertTime(data,starttime,human=True):
     """Function for adding start time for readings
 
     Args:
@@ -157,21 +154,21 @@ def privacyZone(data,minutes):
     return data
 
 def main(argv):
-    inputfile = ''
-    outputfile = ''
-    gpsheader = ''
-    gpsfile = ''
+    inputfile = None
+    outputfile = None
+    gpsheader = None
+    gpsfile = None
     if(len(argv)<1):
-        print 'usage: fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>'
+        print('usage: fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] [-o <outputfile>]')
         sys.exit(2);
     try:
         opts, args = getopt.getopt(argv,"hi:m:g:o:",["ifile=","mform=","gfile=","ofile="])
     except getopt.GetoptError:
-        print 'usage: fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>'
+        print('usage: fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'python fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>'
+            print('python fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>')
             sys.exit()
         elif opt in ("-i", "--ifile"):
             inputfile = arg
@@ -181,8 +178,8 @@ def main(argv):
             gpsheader= arg
         elif opt in ("-gps","gpsfile="):
             gpsfile = arg
-    start,loc = getStarts(inputfile)
-    data = pd.read_csv(inputfile, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0)
+    start,loc,deviceid = getStarts(inputfile)
+    data = pd.read_csv(inputfile, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0, encoding='ISO-8859-1')
     data = convertTime(data,start)
     if gpsheader:
         gps=pd.read_csv(gpsfile,sep=',',header=0)
@@ -191,9 +188,11 @@ def main(argv):
     #clean up column names
     data.columns = data.columns.str.lower().str.replace(":","").str.strip().str.replace(" ", "_")       
     #custom header
-    #header = ["timestamp","pm_1","pm_2.5","pm_4","pm_10","pm_tot.","dcn", "latitude", "longitude"]
-    data.to_csv(outputfile + deviceid + '.csv',index=False, columns = header, encoding='utf-8',date_format='%Y-%m-%d %H:%M:%S')
-    print "Successfully written",outputfile
+    header = ["timestamp","pm_1","pm_2.5","pm_4","pm_10","pm_tot.","dcn", "latitude", "longitude"]
+    if outputfile is None:
+        outputfile = inputfile
+    data.to_csv(outputfile + '_id-' + deviceid + '.csv',index=False, columns = header, encoding='utf-8',date_format='%Y-%m-%d %H:%M:%S')
+    print("Successfully written",outputfile)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
