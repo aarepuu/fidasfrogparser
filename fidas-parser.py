@@ -7,7 +7,7 @@ Code for cleaning up fidas frog files of medatata and converting them to plain c
 and merging with GPS files
 
 Example:
-        $ python fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] -o <outputfile>'
+        $ python fidas-parser.py -i <inputpath> [-m <mergeheader>] [-g <gpsfile>] -o <outputpath>'
 
 
 Todo:
@@ -17,6 +17,7 @@ Todo:
     * Add formating arguments
     * Add custom headers
     * Add fidas frog v2 support
+    * Add bulk processing
 
 
   Copyright (c) 2017, Open Lab Newcastle University, UK. 
@@ -55,12 +56,12 @@ __version__ = "0.52"
 __status__ = "Development"
 
 
-import sys, getopt, datetime
+import sys, getopt, datetime, os, glob
 import pandas as pd
 from datetime import datetime, timedelta
 
 
-def addGPS(readings,gps,gheader,tformat):
+def addGPS(readings,gps,gheader,tformat="%Y-%m-%d %H:%M:%S"):
     """Function for getting nearest timestamp gps location
 
         TODO - needs testing
@@ -153,35 +154,14 @@ def privacyZone(data,minutes):
     data = data[data.timestamp.apply(lambda x: x > tmin) & data.timestamp.apply(lambda x: x < tmax)]
     return data
 
-def main(argv):
-    inputfile = None
-    outputfile = None
-    gpsheader = None
-    gpsfile = None
-    if(len(argv)<1):
-        print('usage: fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] [-o <outputfile>]')
-        sys.exit(2);
-    try:
-        opts, args = getopt.getopt(argv,"hi:m:g:o:",["ifile=","mform=","gfile=","ofile="])
-    except getopt.GetoptError:
-        print('usage: fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print('python fidas-parser.py -i <inputfile> [-m <mergeformat>] [-g <gpsfile>] -o <outputfile>')
-            sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):
-            outputfile = arg
-        elif opt in ("-m","mform="):
-            gpsheader= arg
-        elif opt in ("-gps","gpsfile="):
-            gpsfile = arg
-    start,loc,deviceid = getStarts(inputfile)
-    data = pd.read_csv(inputfile, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0, encoding='ISO-8859-1')
+def processFile(filepath,gpsfile,gpsheader,outputpath):
+    print('Working on ' + filepath)
+    start,loc,deviceid = getStarts(filepath)
+    data = pd.read_csv(filepath, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0, encoding='ISO-8859-1')
     data = convertTime(data,start)
-    if gpsheader:
+    #add deviceid
+    data["device_id"] = deviceid;
+    if gpsheader is not None:
         gps=pd.read_csv(gpsfile,sep=',',header=0)
         data = addGPS(data,gps,gpsheader)
         #data = addGPS(data,gps,"YYYY-MO-DD HH-MI-SS_SSS")      
@@ -189,10 +169,62 @@ def main(argv):
     data.columns = data.columns.str.lower().str.replace(":","").str.strip().str.replace(" ", "_")       
     #custom header
     header = ["timestamp","pm_1","pm_2.5","pm_4","pm_10","pm_tot.","dcn", "latitude", "longitude"]
-    if outputfile is None:
-        outputfile = inputfile
-    data.to_csv(outputfile + '_id-' + deviceid + '.csv',index=False, columns = header, encoding='utf-8',date_format='%Y-%m-%d %H:%M:%S')
-    print("Successfully written",outputfile)
+    if outputpath is None:
+        outputpath = os.path.basename(filepath) + '_id-' + deviceid + '.csv'
+    else:
+        outputpath = outputpath + '/' + os.path.basename(filepath) + '_id-' + deviceid + '.csv'    
+    data.to_csv(outputpath, index=False, columns = header, encoding='utf-8',date_format='%Y-%m-%d %H:%M:%S')
+    print("Successfully written", outputpath)
+
+def main(argv):
+    inputpath = None
+    outputpath = None
+    gpsheader = None
+    gpsfile = None
+    if(len(argv)<1):
+        print('usage: fidas-parser.py -p <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
+        sys.exit(2);
+    try:
+        opts, args = getopt.getopt(argv,"hi:m:g:o:",["ipath=","mform=","gfile=","ofile="])
+    except getopt.GetoptError:
+        print('usage: fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] -o <outputpath>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('python fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] -o <outputpath>')
+            sys.exit()
+        elif opt in ("-i", "--ipath"):
+            inputpath = arg
+        elif opt in ("-o", "--ofpath"):
+            outputpath = arg
+        elif opt in ("-m","mform="):
+            gpsheader= arg
+        elif opt in ("-g","gpsfile="):
+            gpsfile = arg
+    if(os.path.isdir(inputpath)):
+        for filename in os.listdir(inputpath):
+            if filename.endswith(".txt"):
+                filepath = os.path.join(inputpath, filename)
+                processFile(filepath,gpsfile,gpsheader,outputpath)
+                continue
+        #Merge files
+        if outputpath is None:
+            allFiles = glob.glob("*.csv")
+        else:
+            allFiles = glob.glob(outputpath + "/*.csv")
+        frame = pd.DataFrame()
+        list_ = []
+        for file_ in allFiles:
+            df = pd.read_csv(file_,index_col=None, header=0)
+            list_.append(df)
+            frame = pd.concat(list_)
+        if outputpath is None:
+            frame.to_csv('combined.csv',index=False)    
+        else:
+            frame.to_csv(outputpath +'/combined.csv',index=False)        
+    else:
+        processFile(inputpath,gpsfile,gpsheader,outputpath)
+
 
 if __name__ == "__main__":
    main(sys.argv[1:])

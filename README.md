@@ -14,12 +14,32 @@ File parser for Fidas® Frog dust monitor
 Use FidasFrogParser from the command line:
 
 ``` sh
-$ python fidas-parser.py -i <inputfile> [-m <mergeheader>] [-g <gpsfile>] -o <outputfile>'
+$ python fidas-parser.py -i <inputpath> [-m <mergeheader>] [-g <gpsfile>] -o <outputpath>'
 ```
+
+- **-i** input path to a file or directory
+- **-m** column name for timestamp header in GPS merge file (optional)
+- **-g** the actual GPS file (optional)
+- **-o** output path (optional)
+
 ## Authors
 **FidasFrogParser** has been originally developed by:
 
 * Aare Puussaar <a.puussaar2@newcastle.ac.uk>
+
+## TODOs and Ideas
+
+- Write test
+	- input checks
+	- GPS merging
+	- time conversions
+- Add more input arguments
+	- human readable switch for output files
+	- custom output header
+- Add comment extraction function
+- Add formatting arguments
+- ~~Add Fidas Frog v2 support~~
+- ~~Add bulk processing~~
 
 ## Contributing
 
