@@ -7,41 +7,31 @@ Code for cleaning up fidas frog files of medatata and converting them to plain c
 and merging with GPS files
 
 Example:
-        $ python fidas-parser.py -i <inputpath> [-m <mergeheader>] [-g <gpsfile>] -o <outputpath>'
+        $ python fidas-parser.py -i <inputpath> [-m <mergeheader>] [-g <gpsfile>] [-o <outputpath>]'
 
 
-Todo:
-    * Test GPS merging properly 
-    * Add more input arguments: human readable switch for outputfile
-    * Add comment extraction function
-    * Add formating arguments
-    * Add custom headers
-    * Add fidas frog v2 support
-    * Add bulk processing
-
-
-  Copyright (c) 2017, Open Lab Newcastle University, UK. 
+  Copyright (c) 2017, Open Lab Newcastle University, UK.
   All rights reserved.
-  
-  Redistribution and use in source and binary forms, with or without 
-  modification, are permitted provided that the following conditions are met: 
-  1. Redistributions of source code must retain the above copyright notice, 
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+  1. Redistributions of source code must retain the above copyright notice,
      this list of conditions and the following disclaimer.
-  2. Redistributions in binary form must reproduce the above copyright notice, 
-     this list of conditions and the following disclaimer in the documentation 
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
      and/or other materials provided with the distribution.
- 
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
-  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
-  POSSIBILITY OF SUCH DAMAGE. 
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
 
 """
 
@@ -52,7 +42,7 @@ __copyright__ = "Copyright (c) 2017, Newcastle University, UK."
 __license__ = "MIT"
 __maintainer__ = "Aare Puussaar"
 __email__ = "a.puussaar2@ncl.ac.uk"
-__version__ = "0.52"
+__version__ = "0.6.1"
 __status__ = "Development"
 
 
@@ -77,7 +67,7 @@ def addGPS(readings,gps,gheader,tformat="%Y-%m-%d %H:%M:%S"):
         loc: data start location in the file
 
     """
-    
+
     #if readings are in epoch
     #Timezone issues with the parser
     #readings.timestamp = readings.timestamp.astype("datetime64[s]") - timedelta(hours=1)
@@ -97,7 +87,7 @@ def getStarts(source):
     """Function for getting the startdate and data start location
 
     Args:
-        source: input file.    
+        source: input file.
 
     Returns:
         starttime: starttime of readings
@@ -106,20 +96,20 @@ def getStarts(source):
     """
     loc = 0
     with open(source, encoding='ISO-8859-1') as f:
-        for line in f:          
+        for line in f:
             if line.startswith('Start at:'):
                 s=line
             if line.startswith('Operator:'):
                 deviceid = line
             if line.startswith('timestamp'):
                 break
-            loc+=1     
+            loc+=1
     #extract datetime from string
     #starttime = pd.to_datetime(str(s.split(":", 1)[1].strip()).replace("-", "").replace("/", "-"))
     starttime = pd.to_datetime(str(s.split(":", 1)[1].strip()),format="%d/%m/%Y - %H:%M:%S")
     deviceid = str(deviceid.split(":", 1)[1].strip())
     #convert from nanoseconds
-    starttime = starttime.value/10**9 
+    starttime = starttime.value/10**9
     return starttime, loc, deviceid
 
 def convertTime(data,starttime,human=True):
@@ -155,6 +145,17 @@ def privacyZone(data,minutes):
     return data
 
 def processFile(filepath,gpsfile,gpsheader,outputpath):
+    """Function for processing the sensor file
+
+        TODO - needs testing
+
+    Args:
+        filepath: filepath to the sensor file
+        gpsfile: filepath to the GPS file
+        gpsheader: header column of GPS data file to index by
+        outputpath: filepath to of the output directory
+
+    """
     print('Working on ' + filepath)
     start,loc,deviceid = getStarts(filepath)
     data = pd.read_csv(filepath, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0, encoding='ISO-8859-1')
@@ -164,15 +165,15 @@ def processFile(filepath,gpsfile,gpsheader,outputpath):
     if gpsheader is not None:
         gps=pd.read_csv(gpsfile,sep=',',header=0)
         data = addGPS(data,gps,gpsheader)
-        #data = addGPS(data,gps,"YYYY-MO-DD HH-MI-SS_SSS")      
+        #data = addGPS(data,gps,"YYYY-MO-DD HH-MI-SS_SSS")
     #clean up column names
-    data.columns = data.columns.str.lower().str.replace(":","").str.strip().str.replace(" ", "_")       
+    data.columns = data.columns.str.lower().str.replace(":","").str.strip().str.replace(" ", "_")
     #custom header
     header = ["timestamp","pm_1","pm_2.5","pm_4","pm_10","pm_tot.","dcn", "latitude", "longitude"]
     if outputpath is None:
         outputpath = os.path.basename(filepath) + '_id-' + deviceid + '.csv'
     else:
-        outputpath = outputpath + '/' + os.path.basename(filepath) + '_id-' + deviceid + '.csv'    
+        outputpath = outputpath + '/' + os.path.basename(filepath) + '_id-' + deviceid + '.csv'
     data.to_csv(outputpath, index=False, columns = header, encoding='utf-8',date_format='%Y-%m-%d %H:%M:%S')
     print("Successfully written", outputpath)
 
@@ -187,11 +188,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hi:m:g:o:",["ipath=","mform=","gfile=","ofile="])
     except getopt.GetoptError:
-        print('usage: fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] -o <outputpath>')
+        print('usage: fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('python fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] -o <outputpath>')
+            print('python fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
             sys.exit()
         elif opt in ("-i", "--ipath"):
             inputpath = arg
@@ -201,7 +202,7 @@ def main(argv):
             gpsheader= arg
         elif opt in ("-g","gpsfile="):
             gpsfile = arg
-    if(os.path.isdir(inputpath)):
+    if (os.path.isdir(inputpath)):
         for filename in os.listdir(inputpath):
             if filename.endswith(".txt"):
                 filepath = os.path.join(inputpath, filename)
@@ -219,12 +220,13 @@ def main(argv):
             list_.append(df)
             frame = pd.concat(list_)
         if outputpath is None:
-            frame.to_csv('combined.csv',index=False)    
+            frame.to_csv('combined.csv',index=False)
         else:
-            frame.to_csv(outputpath +'/combined.csv',index=False)        
-    else:
+            frame.to_csv(outputpath +'/combined.csv',index=False)
+    elif (os.path.isfile(inputpath)):
         processFile(inputpath,gpsfile,gpsheader,outputpath)
-
-
+    else:
+        print("Please provide correct path to a file or folder containing readings.")
+        print('usage: fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
 if __name__ == "__main__":
    main(sys.argv[1:])

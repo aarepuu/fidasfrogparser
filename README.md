@@ -6,7 +6,6 @@ File parser for Fidas® Frog dust monitor
 **FidasFrogParser** is a file parsing code snippet for [Fidas® Frog](https://www.palas.de/en/product/fidasfrog) fine dust monitor.
 
 ### Requirements
-
 - [Python Pandas](https://pandas.pydata.org/pandas-docs/stable/install.html)
 
 #### to install requirements
