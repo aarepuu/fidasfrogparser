@@ -9,12 +9,18 @@ File parser for Fidas® Frog dust monitor
 
 - [Python Pandas](https://pandas.pydata.org/pandas-docs/stable/install.html)
 
+#### to install requirements
+
+``` sh
+$ pip install -r requirements.txt
+```
+
 ### Usage
 
 Use FidasFrogParser from the command line:
 
 ``` sh
-$ python fidas-parser.py -i <inputpath> [-m <mergeheader>] [-g <gpsfile>] -o <outputpath>'
+$ python fidas-parser.py -i <inputpath> [-m <mergeheader>] [-g <gpsfile>] [-o <outputpath>]'
 ```
 
 - **-i** input path to a file or directory
