@@ -183,7 +183,7 @@ def main(argv):
     gpsheader = None
     gpsfile = None
     if(len(argv)<1):
-        print('usage: fidas-parser.py -p <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
+        print('usage: fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
         sys.exit(2);
     try:
         opts, args = getopt.getopt(argv,"hi:m:g:o:",["ipath=","mform=","gfile=","ofile="])
