@@ -112,7 +112,7 @@ def getStarts(source):
     starttime = starttime.value/10**9
     return starttime, loc, deviceid
 
-def convertTime(data,starttime,human=True):
+def convertTime(data,starttime,human=True, version=2):
     """Function for adding start time for readings
 
     Args:
@@ -123,7 +123,8 @@ def convertTime(data,starttime,human=True):
     Returns:
         data: converted pandas dataframe object of readings
     """
-    data.timestamp = (data.timestamp+starttime).astype(int)
+    if(version<2):
+        data.timestamp = (data.timestamp+starttime).astype(int)
     if(human):
         data.timestamp = data.timestamp.astype("datetime64[s]")
     return data
@@ -158,10 +159,10 @@ def processFile(filepath,gpsfile,gpsheader,outputpath):
     """
     print('Working on ' + filepath)
     start,loc,deviceid = getStarts(filepath)
-    data = pd.read_csv(filepath, skiprows=loc, error_bad_lines=False, index_col=False, sep='\t', header=0, encoding='ISO-8859-1')
+    data = pd.read_csv(filepath, skiprows=loc, index_col=False, sep='\t', header=0, encoding='ISO-8859-1')
     data = convertTime(data,start)
     #add deviceid
-    data["device_id"] = deviceid;
+    data["device_id"] = deviceid
     if gpsheader is not None:
         gps=pd.read_csv(gpsfile,sep=',',header=0)
         data = addGPS(data,gps,gpsheader)
@@ -184,7 +185,7 @@ def main(argv):
     gpsfile = None
     if(len(argv)<1):
         print('usage: fidas-parser.py -i <inputpath> [-m <mergeformat>] [-g <gpsfile>] [-o <outputpath>]')
-        sys.exit(2);
+        sys.exit(2)
     try:
         opts, args = getopt.getopt(argv,"hi:m:g:o:",["ipath=","mform=","gfile=","ofile="])
     except getopt.GetoptError:
